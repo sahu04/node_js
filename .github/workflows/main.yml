@@ -47,5 +47,8 @@ jobs:
     - name: Checkout Repository
       uses: actions/checkout@v2
 
-    - name: Generate Scan Report
-      run: echo "Generate and upload your scan reports here"
+    - name: Display Trivy Report
+      run: cat trivy-report.json
+
+    - name: Display Dockle Report
+      run: cat dockle-report.json
