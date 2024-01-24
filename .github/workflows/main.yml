@@ -3,7 +3,6 @@ name: CI/CD Pipeline
 
 on: [pull_request]
 
-
 jobs:
   build:
     runs-on: ubuntu-latest
@@ -33,14 +32,9 @@ jobs:
 
     - name: Trivy Scan
       run: |
-        docker run --rm -v $(pwd):/workdir -w /workdir aquasec/trivy image node:14
-        with:
-          image-ref: 'node:14'
-          format: 'template'
-          template: '@/contrib/sarif.tpl'
-          output: 'trivy-results.sarif'
-          severity: 'CRITICAL,HIGH'
-          
+        docker run --rm -v $(pwd):/workdir -w /workdir aquasec/trivy image node:14 -o /workdir/trivy-results.sarif
+        echo "Trivy scan completed"
+
     - name: Upload Trivy scan results to GitHub Security tab
       uses: github/codeql-action/upload-sarif@v2
       with:
