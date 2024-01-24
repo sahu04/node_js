@@ -41,30 +41,61 @@
 #         sarif_file: 'trivy-results.sarif'
 
 
-name: build
+# .github/workflows/main.yml
+name: CI/CD Pipeline
+
 on:
   push:
     branches:
-      - main1
+      - main
   pull_request:
+
 jobs:
-  build:
-    name: Build
+  repo_scan:
+    name: Repository Scan
+    runs-on: ubuntu-latest
+
+    steps:
+      - name: Checkout code
+        uses: actions/checkout@v2
+
+      - name: Run Trivy repository scan
+        uses: aquasecurity/trivy-action@master
+        with:
+          scan-type: 'repo'
+          ignore-unfixed: true
+          format: 'sarif'
+          output: 'trivy-repo-results.sarif'
+          severity: 'CRITICAL'
+
+      - name: Upload Trivy repo scan results to GitHub Security tab
+        uses: github/codeql-action/upload-sarif@v2
+        with:
+          sarif_file: 'trivy-repo-results.sarif'
+
+  image_scan:
+    name: Image Scan
     runs-on: ubuntu-20.04
+    needs: repo_scan  # Make sure the repo_scan job completes before starting the image_scan job
+
     steps:
       - name: Checkout code
         uses: actions/checkout@v3
 
-      - name: Run Trivy vulnerability scanner in repo mode
+      - name: Build Docker Image
+        run: docker build -t node:14 .
+
+      - name: Run Trivy image scan
         uses: aquasecurity/trivy-action@master
         with:
-          scan-type: 'fs'
+          scan-type: 'image'
           ignore-unfixed: true
           format: 'sarif'
-          output: 'trivy-results.sarif'
+          output: 'trivy-image-results.sarif'
           severity: 'CRITICAL'
+          image-ref: 'node:14'
 
-      - name: Upload Trivy scan results to GitHub Security tab
+      - name: Upload Trivy image scan results to GitHub Security tab
         uses: github/codeql-action/upload-sarif@v2
         with:
-          sarif_file: 'trivy-results.sarif'
+          sarif_file: 'trivy-image-results.sarif'
