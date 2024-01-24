@@ -33,7 +33,7 @@ jobs:
 
     - name: Trivy Scan
       run: |
-        docker run --rm -v $(pwd):/workdir -w /workdir aquasec/trivy node:14
+        docker run --rm -v $(pwd):/workdir -w /workdir aquasec/trivy image node:14
 
     - name: Dockle Scan
       run: |
