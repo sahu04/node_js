@@ -1,10 +1,8 @@
 # .github/workflows/main.yml
 name: CI/CD Pipeline
 
-on:
-  pull_request:
-    branches:
-      - main
+on: [pull_request]
+
 
 jobs:
   build:
@@ -23,7 +21,7 @@ jobs:
       run: npm install
 
     - name: Build Docker Image
-      run: docker build -t my-node-app .
+      run: docker build -t node:14 .
 
   security_scan:
     runs-on: ubuntu-latest
@@ -35,19 +33,17 @@ jobs:
 
     - name: Trivy Scan
       run: |
-        docker run --rm -v $(pwd):/workdir -w /workdir aquasec/trivy my-node-app
+        docker run --rm -v $(pwd):/workdir -w /workdir aquasec/trivy image node:14
+        with:
+          image-ref: 'node:14'
+          format: 'template'
+          template: '@/contrib/sarif.tpl'
+          output: 'trivy-results.sarif'
+          severity: 'CRITICAL,HIGH'
+          
+    - name: Upload Trivy scan results to GitHub Security tab
+      uses: github/codeql-action/upload-sarif@v2
+      with:
+        sarif_file: 'trivy-results.sarif'
 
-    - name: Dockle Scan
-      run: |
-        docker run --rm -v $(pwd):/workdir -w /workdir goodwithtech/dockle my-node-app
 
-  report:
-    runs-on: ubuntu-latest
-    needs: security_scan
-
-    steps:
-    - name: Checkout Repository
-      uses: actions/checkout@v2
-
-    - name: Generate Scan Report
-      run: echo "Generate and upload your scan reports here"
