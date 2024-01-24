@@ -21,7 +21,7 @@ jobs:
       run: npm install
 
     - name: Build Docker Image
-      run: docker build -t my-node-app .
+      run: docker build -t node:14 .
 
   security_scan:
     runs-on: ubuntu-latest
@@ -33,11 +33,11 @@ jobs:
 
     - name: Trivy Scan
       run: |
-        docker run --rm -v $(pwd):/workdir -w /workdir aquasec/trivy my-node-app
+        docker run --rm -v $(pwd):/workdir -w /workdir aquasec/trivy node:14
 
     - name: Dockle Scan
       run: |
-        docker run --rm -v $(pwd):/workdir -w /workdir goodwithtech/dockle my-node-app
+        docker run --rm -v $(pwd):/workdir -w /workdir goodwithtech/dockle node:14
 
   report:
     runs-on: ubuntu-latest
