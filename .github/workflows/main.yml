@@ -1,53 +1,101 @@
+# # .github/workflows/main.yml
+# name: CI/CD Pipeline
+
+# on: [pull_request]
+
+# jobs:
+#   build:
+#     runs-on: ubuntu-latest
+
+#     steps:
+#     - name: Checkout Repository
+#       uses: actions/checkout@v2
+
+#     - name: Set up Node.js
+#       uses: actions/setup-node@v3
+#       with:
+#         node-version: '14'
+
+#     - name: Install Dependencies
+#       run: npm install
+
+#     - name: Build Docker Image
+#       run: docker build -t node:14 .
+
+#   security_scan:
+#     runs-on: ubuntu-latest
+#     needs: build
+
+#     steps:
+#     - name: Checkout Repository
+#       uses: actions/checkout@v2
+
+#     - name: Trivy Scan
+#       run: |
+#         docker run --rm -v $(pwd):/workdir -w /workdir aquasec/trivy image node:14 -o /workdir/trivy-results.sarif
+#         echo "Trivy scan completed"
+
+#     - name: Upload Trivy scan results to GitHub Security tab
+#       uses: github/codeql-action/upload-sarif@v2
+#       with:
+#         sarif_file: 'trivy-results.sarif'
+
+
 # .github/workflows/main.yml
 name: CI/CD Pipeline
 
 on:
-  pull_request:
+  push:
     branches:
       - main
+  pull_request:
 
 jobs:
-  build:
+  repo_scan:
+    name: Repository Scan
     runs-on: ubuntu-latest
 
     steps:
-    - name: Checkout Repository
-      uses: actions/checkout@v2
+      - name: Checkout code
+        uses: actions/checkout@v2
 
-    - name: Set up Node.js
-      uses: actions/setup-node@v3
-      with:
-        node-version: '14'
+      - name: Run Trivy repository scan
+        uses: aquasecurity/trivy-action@master
+        with:
+          scan-type: 'repo'
+          ignore-unfixed: true
+          format: 'sarif'
+          output: 'trivy-repo-results.sarif'
+          severity: 'CRITICAL'
 
-    - name: Install Dependencies
-      run: npm install
+      - name: Upload Trivy repo scan results to GitHub Security tab
+        uses: github/codeql-action/upload-sarif@v2
+        with:
+          sarif_file: 'trivy-repo-results.sarif'
 
-    - name: Build Docker Image
-      run: docker build -t my-node-app .
-
-  security_scan:
-    runs-on: ubuntu-latest
-    needs: build
-
-    steps:
-    - name: Checkout Repository
-      uses: actions/checkout@v2
-
-    - name: Trivy Scan
-      run: |
-        docker run --rm -v $(pwd):/workdir -w /workdir aquasec/trivy my-node-app
-
-    - name: Dockle Scan
-      run: |
-        docker run --rm -v $(pwd):/workdir -w /workdir goodwithtech/dockle my-node-app
-
-  report:
-    runs-on: ubuntu-latest
-    needs: security_scan
+  image_scan:
+    name: Image Scan
+    runs-on: ubuntu-20.04
+    needs: repo_scan  # Make sure the repo_scan job completes before starting the image_scan job
 
     steps:
-    - name: Checkout Repository
-      uses: actions/checkout@v2
+      - name: Checkout code
+        uses: actions/checkout@v3
 
-    - name: Generate Scan Report
-      run: echo "Generate and upload your scan reports here"
+      - name: Build Docker Image
+        run: docker build -t node:14 .
+
+      - name: Run Trivy image scan
+        uses: aquasecurity/trivy-action@master
+        with:
+          scan-type: 'image'
+          ignore-unfixed: true
+          format: 'sarif'
+          output: 'trivy-image-results.sarif'
+          severity: 'CRITICAL'
+          image-ref: 'node:14'
+
+      - name: Upload Trivy image scan results to GitHub Security tab
+        uses: github/codeql-action/upload-sarif@v2
+        with:
+          sarif_file: 'trivy-image-results.sarif'
