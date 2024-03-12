@@ -1,56 +1,38 @@
-name: trivy-scanning
-
+name: PR_release_version
+run-name: PR_release_version
 on:
   push:
-    branches: [ "master" ]
+    branches:
+      - master  
   pull_request:
-    branches: [ "master" ]
-  
-
-permissions: write-all
+    branches:
+      - master  
 
 jobs:
-  trivy-scanning-job:
-    name: trivy-sec-scan
+  run_script:
     runs-on: ubuntu-latest
+
     steps:
-      - name: Checkout
-        uses: actions/checkout@v3
+      - name: Checkout code
+        uses: actions/checkout@v4
 
-      - name: Run Trivy vulnerability scanner in repo mode
-        uses: aquasecurity/trivy-action@master
+      - name: Set up Python
+        uses: actions/setup-python@v5
         with:
-          scan-type: 'fs'
-          ignore-unfixed: true
-          format: 'sarif'
-          output: 'trivy-results.sarif'
-          severity: 'HIGH,CRITICAL'
+          python-version: '3.x'
 
-      - name: Upload Trivy scan results to GitHub Security tab
-        uses: github/codeql-action/upload-sarif@v3
-        with:
-          sarif_file: 'trivy-results.sarif'
-
-      - name: Build an image from Dockerfile
+      - name: Install dependencies
         run: |
-          docker build -t docker.io/devops-counsel/py-app:${{ github.sha }} .
-      
-      - name: Run Trivy vulnerability scanner
-        uses: aquasecurity/trivy-action@master
-        with:
-          image-ref: 'docker.io/devops-counsel/py-app:${{ github.sha }}'
-          format: 'table'
-          vuln-type: 'os,library'
-          severity: 'CRITICAL,HIGH'
-          
-      - name: Install grype
-        run: |
-          curl -sSfL https://raw.githubusercontent.com/anchore/grype/main/install.sh | sh -s -- -b /usr/local/bin
+          python -m pip install --upgrade pip
+          pip install requests
 
-      - name: Run grype vulnerability scan
-        run: grype -o sarif docker.io/devops-counsel/py-app:${{ github.sha }} > grype-results.sarif
-      
-      - name: Upload grype scan results
-        uses: github/codeql-action/upload-sarif@v3
+      - name: Run Python script
+        run: python pr_version_release1.py 
+        env:
+          MY_GITHUB_TOKEN: ${{ secrets.MY_GITHUB_TOKEN }}
+
+      - name: Upload artifact
+        uses: actions/upload-artifact@v4
         with:
-          sarif_file: 'grype-results.sarif'
+          name: pull_requests
+          path: pull_requests.txt
