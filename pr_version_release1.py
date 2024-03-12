@@ -2,7 +2,7 @@ import os
 import requests
 import json
 
-def get_pull_requests_between_releases(owner, repo, release_versions, release_version_start, release_version_end, github_token):
+def get_pull_requests_between_releases(owner, repo, release_versions, github_token):
     url = f'https://api.github.com/repos/{owner}/{repo}/pulls'
     headers = {'Authorization': f'token {github_token}'}
     pull_requests = []
@@ -20,20 +20,12 @@ def get_pull_requests_between_releases(owner, repo, release_versions, release_ve
 
             for pr in page_pull_requests:
                 pr_labels = [label['name'] for label in pr.get('labels', [])]
-                if release_versions:
-                    if any(label in release_versions for label in pr_labels):
-                        pr_details_response = requests.get(pr['url'], headers=headers)
-                        if pr_details_response.status_code == 200:
-                            pr_details = pr_details_response.json()
-                            pr_details['labels'] = pr_labels
-                            pull_requests.append(pr_details)
-                else:
-                    if any(label in pr_labels for label in [release_version_start, release_version_end]):
-                        pr_details_response = requests.get(pr['url'], headers=headers)
-                        if pr_details_response.status_code == 200:
-                            pr_details = pr_details_response.json()
-                            pr_details['labels'] = pr_labels
-                            pull_requests.append(pr_details)
+                if any(label in release_versions for label in pr_labels):
+                    pr_details_response = requests.get(pr['url'], headers=headers)
+                    if pr_details_response.status_code == 200:
+                        pr_details = pr_details_response.json()
+                        pr_details['labels'] = pr_labels
+                        pull_requests.append(pr_details)
             page += 1
         else:
             print(f'Failed to fetch pull requests. Status code: {response.status_code}')
@@ -48,18 +40,12 @@ if __name__ == "__main__":
     owner = config.get('owner')
     repo = config.get('repo')
     release_versions = config.get('release_versions', [])
-    release_version_start = config.get('release_version_start', '')
-    release_version_end = config.get('release_version_end', '')
     github_token = os.getenv('MY_GITHUB_TOKEN')
 
-    pull_requests = get_pull_requests_between_releases(owner, repo, release_versions, release_version_start, release_version_end, github_token)
+    pull_requests = get_pull_requests_between_releases(owner, repo, release_versions, github_token)
     
     if pull_requests is not None:
-        if release_versions:
-            version_msg = f'release versions {", ".join(release_versions)}'
-        else:
-            version_msg = f'release versions between {release_version_start} and {release_version_end}'
-            
+        version_msg = f'release versions {", ".join(release_versions)}'
         total_pull_requests_msg = f'Total pull requests for {version_msg}: {len(pull_requests)}'
         print(total_pull_requests_msg)
         output_file = 'pull_requests.txt'
