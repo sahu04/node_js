@@ -1,7 +1,5 @@
 {
   "owner": "sahu04",
   "repo": "node_js",
-  "release_version_start": "v1.0.3",
-  "release_version_end": "v1.0.2",
-  "release_versions":  [] 
+  "release_versions":  ["v1.0.3", "v1.0.2", "v1.0.1"] 
 }
